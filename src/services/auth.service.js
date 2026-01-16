@@ -7,6 +7,7 @@ import { generateToken } from "./token.service.js";
 /**
  * Generate Access & Refresh Tokens
  */
+
 export const generateTokens = async (userId) => {
   const user = await User.findById(userId);
 

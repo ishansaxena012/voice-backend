@@ -4,10 +4,6 @@ export const USER_PROVIDERS = {
 
 export const AUTH_HEADER = "authorization";
 
-export const REQUEST_SOURCES = {
-  VOICE: "voice",
-  TEXT: "text",
-};
 
 export const DEFAULT_MESSAGES = {
   UNAUTHORIZED: "Unauthorized access",

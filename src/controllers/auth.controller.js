@@ -1,17 +1,10 @@
-// Receives Google ID token
-// Verifies it with Google
-// Extracts trusted user data
-// Creates / links user
-// Issues your own JWTs
-// Returns clean response
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import User from "../models/user.model.js";
 import { verifyGoogleIdToken } from "../config/googleAuth.config.js";
 import {
-  generateAccessToken,
-  generateRefreshToken,
-} from "../config/jwt.config.js";
+  generateTokens,
+} from "../services/auth.service.js";
 
 /**
  * Google Login / Signup
@@ -44,9 +37,9 @@ export const googleAuth = asyncHandler(async (req, res) => {
 
   if (!user) {
     user = await User.create({
-      googleSub,               
+      googleSub,
       email,
-      fullName,
+      name: fullName,
       avatar,
       authProvider: "google",
       isEmailVerified: true,
@@ -57,18 +50,16 @@ export const googleAuth = asyncHandler(async (req, res) => {
     await user.save();
   }
 
-  const accessToken = generateAccessToken({ _id: user._id });
-  const refreshToken = generateRefreshToken({ _id: user._id });
-
-  user.refreshToken = refreshToken;
-  await user.save();
+  // ✅ CENTRALIZED TOKEN LOGIC
+  const { accessToken, refreshToken } =
+    await generateTokens(user._id);
 
   res.status(200).json({
     success: true,
     user: {
       _id: user._id,
       email: user.email,
-      fullName: user.fullName,
+      name: user.name,
       avatar: user.avatar,
     },
     accessToken,
