@@ -4,7 +4,6 @@
 // Creates / links user
 // Issues your own JWTs
 // Returns clean response
-
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import User from "../models/user.model.js";
@@ -28,11 +27,11 @@ export const googleAuth = asyncHandler(async (req, res) => {
   const googleUser = await verifyGoogleIdToken(idToken);
 
   const {
-    googleId,
+    googleSub,
     email,
+    emailVerified,
     fullName,
     avatar,
-    emailVerified,
   } = googleUser;
 
   if (!emailVerified) {
@@ -40,20 +39,20 @@ export const googleAuth = asyncHandler(async (req, res) => {
   }
 
   let user = await User.findOne({
-    $or: [{ googleId }, { email }],
+    $or: [{ googleSub }, { email }],
   });
 
   if (!user) {
     user = await User.create({
-      googleId,
+      googleSub,               
       email,
       fullName,
       avatar,
       authProvider: "google",
       isEmailVerified: true,
     });
-  } else if (!user.googleId) {
-    user.googleId = googleId;
+  } else if (!user.googleSub) {
+    user.googleSub = googleSub;
     user.authProvider = "google";
     await user.save();
   }
