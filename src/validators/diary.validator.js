@@ -3,20 +3,50 @@ import { body, param, query } from "express-validator";
 /**
  * Create diary entry validation
  * POST /api/v1/diary
+ * (analysis-based, encrypted at rest)
  */
 export const createDiaryValidator = [
-  body("text")
+  body("analysis")
     .exists()
-    .withMessage("Please share something about your day")
+    .withMessage("Analysis data is required")
+    .bail()
+    .isObject()
+    .withMessage("Analysis must be an object"),
+
+  body("analysis.summary")
+    .exists()
+    .withMessage("Summary is required")
     .bail()
     .isString()
-    .withMessage("Diary text must be readable text")
+    .withMessage("Summary must be text"),
+
+  body("analysis.mood")
+    .exists()
+    .withMessage("Mood is required")
     .bail()
-    .trim()
-    .isLength({ min: 10 })
-    .withMessage(
-      "Please write a little more so we can reflect on your day meaningfully"
-    ),
+    .isString()
+    .withMessage("Mood must be text"),
+
+  body("analysis.emotions")
+    .exists()
+    .withMessage("Emotions are required")
+    .bail()
+    .isArray({ min: 1 })
+    .withMessage("Emotions must be a non-empty array"),
+
+  body("analysis.productivityScore")
+    .exists()
+    .withMessage("Productivity score is required")
+    .bail()
+    .isInt({ min: 1, max: 10 })
+    .withMessage("Productivity score must be between 1 and 10"),
+
+  body("analysis.insight")
+    .exists()
+    .withMessage("Insight is required")
+    .bail()
+    .isString()
+    .withMessage("Insight must be text"),
 ];
 
 /**

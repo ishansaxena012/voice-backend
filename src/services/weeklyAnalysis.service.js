@@ -2,6 +2,7 @@ import ApiError from "../utils/ApiError.js";
 import Diary from "../models/diary.model.js";
 import WeeklyAnalysis from "../models/weeklyAnalysis.model.js";
 import { generateWithGemini } from "../config/gemini.config.js";
+import { decrypt, encrypt } from "../utils/encryption.js";
 
 /**
  * Generate weekly analysis for a user
@@ -12,38 +13,40 @@ export const generateWeeklyAnalysisService = async (userId) => {
     throw new ApiError(400, "User ID is required");
   }
 
-/* Calculate week range (Sunday → Saturday) */
-const today = new Date();
+  /* Calculate week range (Sunday → Saturday) */
+  const today = new Date();
+  const dayOfWeek = today.getDay();
 
-// getDay(): Sunday = 0, Monday = 1, ..., Saturday = 6
-const dayOfWeek = today.getDay();
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - dayOfWeek);
+  weekStart.setHours(0, 0, 0, 0);
 
-const weekStart = new Date(today);
-weekStart.setDate(today.getDate() - dayOfWeek);
-weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
 
-const weekEnd = new Date(weekStart);
-weekEnd.setDate(weekStart.getDate() + 6);
-weekEnd.setHours(23, 59, 59, 999);
-
-
-  /*  Prevent duplicate generation  */
+  /* Prevent duplicate generation */
   const existing = await WeeklyAnalysis.findOne({
     userId,
     weekStart,
   });
 
   if (existing) {
-    return existing;
+    return {
+      weeklyAnalysisId: existing._id,
+      weekStart: existing.weekStart,
+      weekEnd: existing.weekEnd,
+      entryCount: existing.entryCount,
+    };
   }
 
-  /*  Fetch diary entries  */
+  /* Fetch encrypted diary entries */
   const diaries = await Diary.find({
     userId,
     entryDate: { $gte: weekStart, $lte: weekEnd },
   })
     .sort({ entryDate: 1 })
-    .select("analysis entryDate");
+    .select("encryptedAnalysis entryDate");
 
   if (diaries.length < 3) {
     throw new ApiError(
@@ -52,62 +55,44 @@ weekEnd.setHours(23, 59, 59, 999);
     );
   }
 
-  /*  Aggregate data  */
-  const moods = diaries.map((d) => d.analysis.mood);
-  const emotions = diaries.flatMap((d) => d.analysis.emotions);
+  /* 🔓 Decrypt diary analyses in memory */
+  const decryptedAnalyses = diaries.map((d) =>
+    JSON.parse(decrypt(d.encryptedAnalysis))
+  );
+
+  /* Aggregate data */
+  const moods = decryptedAnalyses.map((a) => a.mood);
+  const emotions = decryptedAnalyses.flatMap((a) => a.emotions);
 
   const avgProductivity =
-    diaries.reduce(
-      (sum, d) => sum + d.analysis.productivityScore,
+    decryptedAnalyses.reduce(
+      (sum, a) => sum + a.productivityScore,
       0
-    ) / diaries.length;
+    ) / decryptedAnalyses.length;
 
-  /*  Humanized AI prompt  */
+  /* AI prompt */
   const prompt = `
 You are reflecting on someone’s week as a thoughtful, kind, emotionally intelligent human being.
-
-You are NOT an AI, not a therapist, not a coach, and not a productivity judge.
-You are a calm, supportive presence — like a close friend who listens carefully
-and reflects back patterns with warmth and understanding.
-
-Your goal is to help the person feel:
-- seen
-- understood
-- gently encouraged
-- never judged or pressured
-
-Important rules:
-- Do NOT sound technical, robotic, or analytical
-- Do NOT use harsh language, blame, or criticism
-- Do NOT shame low productivity or difficult emotions
-- Do NOT exaggerate positives or negatives
-- Avoid clichés and generic motivational talk
-- Speak with emotional nuance and balance
 
 Weekly context:
 - Moods experienced: ${moods.join(", ")}
 - Emotions felt: ${emotions.join(", ")}
 - Average productivity level (1–10, context only): ${avgProductivity.toFixed(1)}
-- Number of diary entries: ${diaries.length}
+- Number of diary entries: ${decryptedAnalyses.length}
 
-Reflect on the week as a human would — carefully, thoughtfully, and honestly.
-
-Respond ONLY in valid JSON.
-Do NOT include markdown, explanations, or extra text.
-
-JSON format:
+Respond ONLY in valid JSON with this structure:
 {
-  "summary": "A warm, human summary of how the week felt overall",
-  "moodTrend": "A gentle description of how the mood shifted or stayed steady",
-  "emotionalPattern": "Subtle emotional patterns noticed across the week",
-  "productivityTrend": "A kind, realistic reflection on productivity without pressure",
-  "positiveHabit": "One genuine strength or small positive habit shown",
-  "improvementFocus": "One soft, non-judgmental area to be mindful of next week",
-  "message": "A short, heartfelt message that feels written by a caring human"
+  "summary": "...",
+  "moodTrend": "...",
+  "emotionalPattern": "...",
+  "productivityTrend": "...",
+  "positiveHabit": "...",
+  "improvementFocus": "...",
+  "message": "..."
 }
 `;
 
-  /*  Call Gemini  */
+  /* Call Gemini */
   const aiResponse = await generateWithGemini(prompt);
 
   const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
@@ -122,7 +107,7 @@ JSON format:
     throw new ApiError(500, "Failed to parse weekly AI response");
   }
 
-  /*  Validate AI output  */
+  /* Validate AI output */
   const requiredFields = [
     "summary",
     "moodTrend",
@@ -134,10 +119,7 @@ JSON format:
   ];
 
   for (const field of requiredFields) {
-    if (
-      !parsed[field] ||
-      typeof parsed[field] !== "string"
-    ) {
+    if (!parsed[field] || typeof parsed[field] !== "string") {
       throw new ApiError(
         500,
         `Weekly AI response missing or invalid field: ${field}`
@@ -145,14 +127,25 @@ JSON format:
     }
   }
 
-  /*  Save weekly analysis  */
-  const weeklyAnalysis = await WeeklyAnalysis.create({
+  /* Encrypt weekly analysis BEFORE saving */
+  const encryptedWeeklyAnalysis = encrypt(
+    JSON.stringify(parsed)
+  );
+
+  /* Save encrypted weekly analysis */
+  const weeklyDoc = await WeeklyAnalysis.create({
     userId,
     weekStart,
     weekEnd,
     entryCount: diaries.length,
-    ...parsed,
+    encryptedWeeklyAnalysis,
+    analysisVersion: 1,
   });
 
-  return weeklyAnalysis;
+  return {
+    weeklyAnalysisId: weeklyDoc._id,
+    weekStart: weeklyDoc.weekStart,
+    weekEnd: weeklyDoc.weekEnd,
+    entryCount: weeklyDoc.entryCount,
+  };
 };

@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant User
+    participant App as Android App
+    participant Google as Google Auth
+    participant API as Backend API
+    participant DB as MongoDB
+
+    User ->> App: Sign in with Google
+    App ->> Google: Request ID Token
+    Google -->> App: ID Token
+
+    App ->> API: Send ID Token
+    API ->> Google: Verify ID Token
+    Google -->> API: Token Valid
+
+    API ->> DB: Find or Create User
+    DB -->> API: User Record
+
+    API ->> API: Generate JWT
+    API -->> App: Access & Refresh Tokens
+
+    App ->> API: Authenticated Requests
+    API ->> API: verifyJWT Middleware

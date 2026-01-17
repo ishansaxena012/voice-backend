@@ -8,7 +8,13 @@ if (!process.env.GEMINI_API_KEY) {
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export const geminiModel = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash-exp", 
+  model: "gemini-2.0-flash-exp",
+  generationConfig: {
+    temperature: 0.4,       // lower = more structured
+    topP: 0.9,
+    maxOutputTokens: 400,   // prevents rambling
+    responseMimeType: "application/json",
+  },
 });
 
 export const generateWithGemini = async (prompt) => {
@@ -20,11 +26,11 @@ export const generateWithGemini = async (prompt) => {
     const result = await geminiModel.generateContent(prompt);
     const response = result?.response?.text?.();
 
-    if (!response) {
+    if (!response || typeof response !== "string") {
       throw new ApiError(500, "Empty response from Gemini");
     }
 
-    return response;
+    return response.trim();
   } catch (error) {
     throw new ApiError(
       500,

@@ -33,7 +33,7 @@ Here is the diary entry for the day:
 ${diaryText}
 """
 
-Now reflect on this day **as a human would**.
+Now reflect on this day as a human would.
 
 Respond ONLY in valid JSON.
 Do NOT include explanations, markdown, or extra text.
@@ -43,14 +43,14 @@ JSON format:
   "summary": "A gentle, human summary of how the day felt overall",
   "mood": "A single word or short phrase describing the overall mood",
   "emotions": ["List of emotions that appeared during the day"],
-  "productivityScore": "A number from 1 to 10 that loosely reflects how productive the day felt (not a judgment)",
+  "productivityScore": 1,
   "insight": "One kind, thoughtful insight that helps the person understand their day better"
 }
 
 Rules for fields:
+- productivityScore MUST be a NUMBER between 1 and 10 (not a string)
 - mood should be simple (e.g., calm, heavy, mixed, light, tired, hopeful)
 - emotions should feel human, not clinical
-- productivityScore should respect energy and circumstances
 - insight should sound like it came from a caring human, not a machine
 `;
 };

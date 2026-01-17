@@ -4,17 +4,21 @@ import ApiError from "../utils/ApiError.js";
 import Diary from "../models/diary.model.js";
 import { analyzeDailyText } from "../services/analysis.service.js";
 import { generateWeeklyAnalysisService } from "../services/weeklyAnalysis.service.js";
+import { getWeeklyAnalysisService } from "../services/weeklyRead.service.js";
+import { encrypt } from "../utils/encryption.js";
+import { getTodayDiaryService } from "../services/diary.service.js";
+
 
 /**
  * DAILY ANALYSIS
  * POST /api/v1/analysis/daily
- * Saves to diaries collection
+ * Saves encrypted data to diaries collection
  */
 export const analyzeDaily = asyncHandler(async (req, res) => {
   const { text } = req.body;
 
-  if (!text || text.trim().length === 0) {
-    throw new ApiError(400, "Text is required for daily analysis");
+  if (!text || !text.trim()) {
+    throw new ApiError(400, "Text is required for analysis");
   }
 
   const userId = req.user?._id;
@@ -22,15 +26,18 @@ export const analyzeDaily = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Unauthorized");
   }
 
-  // AI analysis
+  // Analyze (plaintext exists only in memory)
   const analysis = await analyzeDailyText(text);
 
-  // Save daily diary
+  // Encrypt analysis
+  const encryptedAnalysis = encrypt(JSON.stringify(analysis));
+
+  // Save encrypted diary entry
   const diary = await Diary.create({
     userId,
-    text,
-    analysis,
+    encryptedAnalysis,
     entryDate: new Date(),
+    analysisVersion: 1,
   });
 
   res.status(201).json(
@@ -39,17 +46,43 @@ export const analyzeDaily = asyncHandler(async (req, res) => {
       {
         diaryId: diary._id,
         date: diary.entryDate,
-        analysis,
       },
-      "Daily analysis saved successfully"
+      "Diary entry analyzed and saved securely"
     )
   );
 });
 
+
 /**
- * WEEKLY ANALYSIS
+ * DAILY ANALYSIS (FETCH TODAY)
+ * GET /api/v1/analysis/daily
+ */
+export const getDailyAnalysis = asyncHandler(async (req, res) => {
+  const userId = req.user?._id;
+  if (!userId) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const diary = await getTodayDiaryService(userId);
+
+  if (!diary) {
+    throw new ApiError(404, "No diary entry for today");
+  }
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      diary,
+      "Daily analysis fetched successfully"
+    )
+  );
+});
+
+
+
+/**
+ * WEEKLY ANALYSIS (GENERATE)
  * POST /api/v1/analysis/weekly
- * Saves to weeklyAnalyses collection
  */
 export const analyzeWeekly = asyncHandler(async (req, res) => {
   const userId = req.user?._id;
@@ -57,12 +90,6 @@ export const analyzeWeekly = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Unauthorized");
   }
 
-  // Service handles:
-  // - week calculation
-  // - duplicate prevention
-  // - diary fetching
-  // - AI generation
-  // - saving to DB
   const weeklyAnalysis =
     await generateWeeklyAnalysisService(userId);
 
@@ -70,7 +97,36 @@ export const analyzeWeekly = asyncHandler(async (req, res) => {
     new ApiResponse(
       200,
       weeklyAnalysis,
-      "Weekly analysis saved successfully"
+      "Weekly analysis saved securely"
+    )
+  );
+});
+
+/**
+ * WEEKLY ANALYSIS (FETCH)
+ * GET /api/v1/analysis/weekly?weekStart=YYYY-MM-DD
+ */
+export const getWeeklyAnalysis = asyncHandler(async (req, res) => {
+  const userId = req.user?._id;
+  if (!userId) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const { weekStart } = req.query;
+  if (!weekStart) {
+    throw new ApiError(400, "weekStart query parameter is required");
+  }
+
+  const weekly = await getWeeklyAnalysisService({
+    userId,
+    weekStart,
+  });
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      weekly,
+      "Weekly analysis fetched successfully"
     )
   );
 });

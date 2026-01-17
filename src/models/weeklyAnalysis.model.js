@@ -1,5 +1,24 @@
 import mongoose from "mongoose";
 
+// Reusable encrypted payload schema
+const encryptedPayloadSchema = new mongoose.Schema(
+  {
+    iv: {
+      type: String,
+      required: true,
+    },
+    content: {
+      type: String,
+      required: true,
+    },
+    tag: {
+      type: String,
+      required: true,
+    },
+  },
+  { _id: false }
+);
+
 const weeklyAnalysisSchema = new mongoose.Schema(
   {
     userId: {
@@ -20,41 +39,13 @@ const weeklyAnalysisSchema = new mongoose.Schema(
       required: true,
     },
 
-    summary: {
-      type: String,
+    //  Encrypted weekly AI output
+    encryptedWeeklyAnalysis: {
+      type: encryptedPayloadSchema,
       required: true,
     },
 
-    moodTrend: {
-      type: String,
-      required: true,
-    },
-
-    emotionalPattern: {
-      type: String,
-      required: true,
-    },
-
-    productivityTrend: {
-      type: String,
-      required: true,
-    },
-
-    positiveHabit: {
-      type: String,
-      required: true,
-    },
-
-    improvementFocus: {
-      type: String,
-      required: true,
-    },
-
-    message: {
-      type: String,
-      required: true,
-    },
-
+    // Safe metadata (NOT encrypted)
     entryCount: {
       type: Number,
       required: true,

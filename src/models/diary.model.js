@@ -1,5 +1,23 @@
 import mongoose from "mongoose";
 
+const encryptedPayloadSchema = new mongoose.Schema(
+  {
+    iv: {
+      type: String,
+      required: true,
+    },
+    content: {
+      type: String,
+      required: true,
+    },
+    tag: {
+      type: String,
+      required: true,
+    },
+  },
+  { _id: false }
+);
+
 const diarySchema = new mongoose.Schema(
   {
     userId: {
@@ -9,54 +27,21 @@ const diarySchema = new mongoose.Schema(
       index: true,
     },
 
-    text: {
-      type: String,
+    // 🔐 Encrypted AI analysis (summary, mood, emotions, insight, etc.)
+    encryptedAnalysis: {
+      type: encryptedPayloadSchema,
       required: true,
-      trim: true,
     },
 
-    analysis: {
-      summary: {
-        type: String,
-        required: true,
-      },
-      mood: {
-        type: String,
-        required: true,
-      },
-      emotions: {
-        type: [String],
-        required: true,
-      },
-      productivityScore: {
-        type: Number,
-        min: 1,
-        max: 10,
-        required: true,
-      },
-      insight: {
-        type: String,
-        required: true,
-      },
-    },
-
+    // keep time — important for ordering multiple entries
     entryDate: {
       type: Date,
       required: true,
       index: true,
+      default: Date.now,
     },
 
-    // source: {
-    //   type: String,
-    //   enum: ["voice", "text"],
-    //   default: "voice",
-    // },
-
-    isEdited: {
-      type: Boolean,
-      default: false,
-    },
-
+    // helps if AI logic changes in future
     analysisVersion: {
       type: Number,
       default: 1,
@@ -68,7 +53,7 @@ const diarySchema = new mongoose.Schema(
   }
 );
 
-//  Critical for weekly queries
+// Fast timeline queries
 diarySchema.index({ userId: 1, entryDate: -1 });
 
 const Diary = mongoose.model("Diary", diarySchema);
