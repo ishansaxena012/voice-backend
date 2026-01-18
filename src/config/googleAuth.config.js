@@ -13,7 +13,7 @@ if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_CALLBACK_URL) {
     "Google OAuth environment variables are missing"
   );
 }
-console.log("GOOGLE_CLIENT_ID used by backend:", process.env.GOOGLE_CLIENT_ID);
+// console.log("GOOGLE_CLIENT_ID used by backend:", process.env.GOOGLE_CLIENT_ID);
 
 // OAuth client
 export const googleOAuthClient = new OAuth2Client(
