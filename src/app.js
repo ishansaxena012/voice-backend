@@ -19,9 +19,7 @@ app.use(requestIdMiddleware);
 
 app.use(
   cors({
-    origin:
-      process.env.CORS_ORIGIN?.split(",") ||
-      "http://localhost:3000",
+    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : true,
     credentials: true,
   })
 );

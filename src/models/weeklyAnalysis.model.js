@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-// Reusable encrypted payload schema
 const encryptedPayloadSchema = new mongoose.Schema(
   {
     iv: {

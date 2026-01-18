@@ -27,13 +27,12 @@ const diarySchema = new mongoose.Schema(
       index: true,
     },
 
-    // 🔐 Encrypted AI analysis (summary, mood, emotions, insight, etc.)
+    // Encrypted AI analysis (summary, mood, emotions, insight, etc.)
     encryptedAnalysis: {
       type: encryptedPayloadSchema,
       required: true,
     },
 
-    // keep time — important for ordering multiple entries
     entryDate: {
       type: Date,
       required: true,
@@ -41,7 +40,6 @@ const diarySchema = new mongoose.Schema(
       default: Date.now,
     },
 
-    // helps if AI logic changes in future
     analysisVersion: {
       type: Number,
       default: 1,

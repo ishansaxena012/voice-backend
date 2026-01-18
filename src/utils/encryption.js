@@ -5,7 +5,7 @@ const KEY = Buffer.from(process.env.DIARY_ENCRYPTION_KEY, "hex");
 // 32 bytes (64 hex chars)
 
 export function encrypt(text) {
-  const iv = crypto.randomBytes(12); // recommended for GCM
+  const iv = crypto.randomBytes(12); 
   const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
 
   let encrypted = cipher.update(text, "utf8", "hex");

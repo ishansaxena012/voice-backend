@@ -55,7 +55,7 @@ export const generateWeeklyAnalysisService = async (userId) => {
     );
   }
 
-  /* 🔓 Decrypt diary analyses in memory */
+  /* Decrypt diary analyses in memory */
   const decryptedAnalyses = diaries.map((d) =>
     JSON.parse(decrypt(d.encryptedAnalysis))
   );

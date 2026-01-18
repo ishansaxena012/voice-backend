@@ -50,7 +50,7 @@ export const googleAuth = asyncHandler(async (req, res) => {
     await user.save();
   }
 
-  // ✅ CENTRALIZED TOKEN LOGIC
+  //  CENTRALIZED TOKEN LOGIC
   const { accessToken, refreshToken } =
     await generateTokens(user._id);
 

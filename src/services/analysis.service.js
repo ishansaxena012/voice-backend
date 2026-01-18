@@ -2,7 +2,6 @@ import ApiError from "../utils/ApiError.js";
 import buildPrompt from "../utils/promptBuilder.js";
 import { generateWithGemini } from "../config/gemini.config.js";
 
-// Safer JSON extraction (first JSON object only)
 const extractJSON = (response) => {
   const match = response.match(/\{[\s\S]*?\}/);
   return match ? match[0] : null;
@@ -28,7 +27,7 @@ export const analyzeDailyText = async (text) => {
     throw new ApiError(500, "Failed to parse AI JSON response");
   }
 
-  //  NORMALIZATION (THIS IS THE KEY FIX)
+  //  NORMALIZATION 
   const normalized = {
     summary: parsed.summary?.toString().trim() || "No summary available",
     mood: parsed.mood?.toString().trim() || "neutral",
