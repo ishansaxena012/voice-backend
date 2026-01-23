@@ -1,0 +1,3 @@
+EvokAI Backend — Scalable Node.js backend powering a voice-first AI journaling app. Handles audio processing, AI insight generation, and secure data storage with a focus on simplicity and performance.
+
+🌐 Live app: https://evokai-app.web.app/
